@@ -9,3 +9,11 @@ trim_trailing_whitespace = true
 [*.py]
 indent_style = space
 indent_size = 4
+
+[{*.cfg,*.ini}]
+indent_style = space
+indent_size = 4
+
+[{*.yaml,*.yml}]
+indent_style = space
+indent_size = 2
