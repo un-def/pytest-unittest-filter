@@ -17,7 +17,7 @@ def pytest_addoption(parser):
     )
 
 
-@pytest.hookimpl(hookwrapper=True, trylast=True)
+@pytest.hookimpl(hookwrapper=True, tryfirst=True)
 def pytest_pycollect_makeitem(collector, name):
     outcome = yield
     if not collector.config.getini(INI_OPTION_NAME):
