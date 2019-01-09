@@ -1,23 +1,20 @@
 import pytest
 
 
-@pytest.mark.parametrize('option_value, expected_unittests', [
-    (None, ('TestUnitFoo', 'TestUnitBar', 'CheckUnitFoo')),
-    ('', ('TestUnitFoo', 'TestUnitBar', 'CheckUnitFoo')),
-    ('TestUn?tBar Check*', ('TestUnitBar', 'CheckUnitFoo')),
-    ('Test', ('TestUnitFoo', 'TestUnitBar')),
-    ('Test*', ('TestUnitFoo', 'TestUnitBar')),
-    ('*Foo', ('TestUnitFoo', 'CheckUnitFoo')),
-    ('*Unit[!B]*', ('TestUnitFoo', 'CheckUnitFoo')),
-    ('*Baz*', ()),
-])
-def test(testdir, option_value, expected_unittests):
-    if option_value is not None:
-        testdir.makeini("""
-            [pytest]
-            python_unittest_classes = {}
-        """.format(option_value))
-    items = testdir.getitems("""
+@pytest.fixture
+def ini(request, testdir):
+    marker = request.node.get_closest_marker('options')
+    if not marker or not marker.kwargs:
+        return
+    ini_lines = ['[pytest]']
+    ini_lines.extend(
+        'python_unittest_{} = {}'.format(*e) for e in marker.kwargs.items())
+    return testdir.makeini(ini_lines)
+
+
+@pytest.fixture
+def items(testdir, ini):
+    return testdir.getitems("""
         import unittest
 
         class TestUnitFoo(unittest.TestCase):
@@ -48,6 +45,24 @@ def test(testdir, option_value, expected_unittests):
         def test_plain():
             assert True
     """)
+
+
+def param(*expected, **options):
+    id_ = ';'.join('{}={}'.format(*e) for e in options.items())
+    return pytest.param(expected, id=id_, marks=pytest.mark.options(**options))
+
+
+@pytest.mark.parametrize('expected_unittests', [
+    param('TestUnitFoo', 'TestUnitBar', 'CheckUnitFoo'),
+    param('TestUnitFoo', 'TestUnitBar', 'CheckUnitFoo', classes=''),
+    param('TestUnitBar', 'CheckUnitFoo', classes='TestUn?tBar Check*'),
+    param('TestUnitFoo', 'TestUnitBar', classes='Test'),
+    param('TestUnitFoo', 'TestUnitBar', classes='Test*'),
+    param('TestUnitFoo', 'CheckUnitFoo', classes='*Foo'),
+    param('TestUnitFoo', 'CheckUnitFoo', classes='*Unit[!B]*'),
+    param(classes='*Baz*'),
+])
+def test(testdir, items, expected_unittests):
     collected = sorted(item.nodeid.split('::')[1] for item in items)
     assert 'TestPytestFoo' in collected
     assert 'test_plain' in collected
