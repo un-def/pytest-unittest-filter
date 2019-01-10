@@ -17,6 +17,11 @@ def items(testdir, ini):
     return testdir.getitems("""
         import unittest
 
+        class _TestUnitFoo(unittest.TestCase):
+
+            def test(self):
+                assert True
+
         class TestUnitFoo(unittest.TestCase):
 
             def test(self):
@@ -28,6 +33,11 @@ def items(testdir, ini):
                 assert True
 
         class CheckUnitFoo(unittest.TestCase):
+
+            def test(self):
+                assert True
+
+        class _CheckUnitBar(unittest.TestCase):
 
             def test(self):
                 assert True
@@ -53,16 +63,40 @@ def param(*expected, **options):
 
 
 @pytest.mark.parametrize('expected_unittests', [
-    param('TestUnitFoo', 'TestUnitBar', 'CheckUnitFoo'),
-    param('TestUnitFoo', 'TestUnitBar', 'CheckUnitFoo', classes=''),
-    param('TestUnitBar', 'CheckUnitFoo', classes='TestUn?tBar Check*'),
+    # without options
+    param(
+        '_TestUnitFoo', 'TestUnitFoo', 'TestUnitBar', 'CheckUnitFoo',
+        '_CheckUnitBar',),
+    # with python_unittest_classes
+    param(
+        '_TestUnitFoo', 'TestUnitFoo', 'TestUnitBar', 'CheckUnitFoo',
+        '_CheckUnitBar', classes=''),
     param('TestUnitFoo', 'TestUnitBar', classes='Test'),
     param('TestUnitFoo', 'TestUnitBar', classes='Test*'),
-    param('TestUnitFoo', 'CheckUnitFoo', classes='*Foo'),
-    param('TestUnitFoo', 'CheckUnitFoo', classes='*Unit[!B]*'),
+    param('TestUnitBar', 'CheckUnitFoo', classes='TestUn?tBar Check*'),
+    param('_TestUnitFoo', 'TestUnitFoo', 'CheckUnitFoo', classes='*Foo'),
+    param('TestUnitFoo', 'CheckUnitFoo', classes='[!_]*Foo'),
+    param('_TestUnitFoo', 'TestUnitFoo', 'CheckUnitFoo', classes='*Unit[!B]*'),
+    param('TestUnitFoo', 'TestUnitBar', 'CheckUnitFoo', classes='[!_]*'),
     param(classes='*Baz*'),
+    # with python_unittest_exclude_underscore
+    param(
+        '_TestUnitFoo', 'TestUnitFoo', 'TestUnitBar', 'CheckUnitFoo',
+        '_CheckUnitBar', exclude_underscore=False),
+    param(
+        'TestUnitFoo', 'TestUnitBar', 'CheckUnitFoo', exclude_underscore=True),
+    # with python_unittest_classes and python_unittest_exclude_underscore
+    param(
+        '_TestUnitFoo', 'TestUnitFoo', 'CheckUnitFoo',
+        classes='*Foo', exclude_underscore=False),
+    param(
+        'TestUnitFoo', 'CheckUnitFoo',
+        classes='*Foo', exclude_underscore=True),
+    param(
+        '_CheckUnitBar', classes='*Check*Bar', exclude_underscore=False),
+    param(classes='*Check*Bar', exclude_underscore=True),
 ])
-def test(testdir, items, expected_unittests):
+def test(items, expected_unittests):
     collected = sorted(item.nodeid.split('::')[1] for item in items)
     assert 'TestPytestFoo' in collected
     assert 'test_plain' in collected
