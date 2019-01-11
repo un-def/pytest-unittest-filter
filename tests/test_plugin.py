@@ -12,49 +12,8 @@ def ini(request, testdir):
     return testdir.makeini(ini_lines)
 
 
-@pytest.fixture
-def items(testdir, ini):
-    return testdir.getitems("""
-        import unittest
-
-        class _TestUnitFoo(unittest.TestCase):
-
-            def test(self):
-                assert True
-
-        class TestUnitFoo(unittest.TestCase):
-
-            def test(self):
-                assert True
-
-        class TestUnitBar(unittest.TestCase):
-
-            def test(self):
-                assert True
-
-        class CheckUnitFoo(unittest.TestCase):
-
-            def test(self):
-                assert True
-
-        class _CheckUnitBar(unittest.TestCase):
-
-            def test(self):
-                assert True
-
-        class TestPytestFoo(object):
-
-            def test(self):
-                assert True
-
-        class CheckPytestBar(object):
-
-            def test(self):
-                assert True
-
-        def test_plain():
-            assert True
-    """)
+def get_collected(items):
+    return sorted(item.nodeid.split('::')[1] for item in items)
 
 
 def param(*expected, **options):
@@ -96,10 +55,70 @@ def param(*expected, **options):
         '_CheckUnitBar', classes='*Check*Bar', exclude_underscore=False),
     param(classes='*Check*Bar', exclude_underscore=True),
 ])
-def test(items, expected_unittests):
-    collected = sorted(item.nodeid.split('::')[1] for item in items)
+def test_options(testdir, ini, expected_unittests):
+    items = testdir.getitems("""
+        import unittest
+
+        class _TestUnitFoo(unittest.TestCase):
+
+            def test(self):
+                assert True
+
+        class TestUnitFoo(unittest.TestCase):
+
+            def test(self):
+                assert True
+
+        class TestUnitBar(unittest.TestCase):
+
+            def test(self):
+                assert True
+
+        class CheckUnitFoo(unittest.TestCase):
+
+            def test(self):
+                assert True
+
+        class _CheckUnitBar(unittest.TestCase):
+
+            def test(self):
+                assert True
+
+        class TestPytestFoo(object):
+
+            def test(self):
+                assert True
+
+        class CheckPytestBar(object):
+
+            def test(self):
+                assert True
+
+        def test_plain():
+            assert True
+    """)
+    collected = get_collected(items)
     assert 'TestPytestFoo' in collected
     assert 'test_plain' in collected
     collected.remove('TestPytestFoo')
     collected.remove('test_plain')
     assert collected == sorted(expected_unittests)
+
+
+@pytest.mark.options(exclude_underscore=True, classes='*Bar')
+def test_only_unittests_are_filtered(testdir, ini):
+    testdir.makeconftest("""
+        from _pytest.python import Class
+
+        def pytest_pycollect_makeitem(collector, name):
+            if name.startswith('_XTestClass'):
+                return Class(name, parent=collector)
+    """)
+    items = testdir.getitems("""
+        class _XTestClassFoo(object):
+
+            def test(self):
+                assert True
+    """)
+    collected = get_collected(items)
+    assert collected == ['_XTestClassFoo']
