@@ -80,7 +80,7 @@ python_unittest_exclude_underscore = true
 
 ## Changelog
 
-### 0.2.0 (UNRELEASED)
+### 0.2.0 (2019-01-11)
 
 * Added `python_unittest_exclude_underscore` option
 
