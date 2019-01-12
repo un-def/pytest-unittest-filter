@@ -80,6 +80,10 @@ python_unittest_exclude_underscore = true
 
 ## Changelog
 
+### 0.2.1 (2019-01-12)
+
+* Fixed bug where `python_unittest_exclude_underscore` was applied to any collected item, not only unittest classes
+
 ### 0.2.0 (2019-01-11)
 
 * Added `python_unittest_exclude_underscore` option

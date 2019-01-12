@@ -2,7 +2,7 @@ import pytest
 from _pytest.unittest import UnitTestCase
 
 
-__version__ = '0.2.1.dev0'
+__version__ = '0.2.1'
 
 
 INI_OPTION_CLASSES = 'python_unittest_classes'
