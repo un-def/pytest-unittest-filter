@@ -7,8 +7,10 @@ def ini(request, testdir):
     if not marker or not marker.kwargs:
         return
     ini_lines = ['[pytest]']
-    ini_lines.extend(
-        'python_unittest_{} = {}'.format(*e) for e in marker.kwargs.items())
+    for option, value in marker.kwargs.items():
+        if option in ['classes', 'exclude_underscore']:
+            option = 'python_unittest_{}'.format(option)
+        ini_lines.append('{} = {}'.format(option, value))
     return testdir.makeini(ini_lines)
 
 
@@ -105,20 +107,26 @@ def test_options(testdir, ini, expected_unittests):
     assert collected == sorted(expected_unittests)
 
 
-@pytest.mark.options(exclude_underscore=True, classes='*Bar')
+@pytest.mark.options(
+    classes='*Bar', exclude_underscore=True, python_classes='_Test*')
 def test_only_unittests_are_filtered(testdir, ini):
-    testdir.makeconftest("""
-        from _pytest.python import Class
-
-        def pytest_pycollect_makeitem(collector, name):
-            if name.startswith('_XTestClass'):
-                return Class(name, parent=collector)
-    """)
     items = testdir.getitems("""
-        class _XTestClassFoo(object):
+        import unittest
+
+        class TestClassFoo(unittest.TestCase):
+
+            def test(self):
+                assert True
+
+        class _TestClassBar(unittest.TestCase):
+
+            def test(self):
+                assert True
+
+        class _TestClassFoo(object):
 
             def test(self):
                 assert True
     """)
     collected = get_collected(items)
-    assert collected == ['_XTestClassFoo']
+    assert collected == ['_TestClassFoo']
